@@ -645,3 +645,155 @@ if flag_autoM == 1:
         edge_srM_rgb_backup = edge_srM_rgb.copy()
         cv.imshow("Auto measu. preview", edge_srM_rgb_temp)
         cv.waitKey(1)
+
+        for it in range(1,n_slice+1):
+            y_slice = P_bot_y-pix_nm_ref*it*delta_nm
+            ycut_data = edge_srM[y_slice,x_slice_L:x_slice_R]
+##            print("x_slice_L,x_slice_R,y_slice =",x_slice_L,",",x_slice_R,",",y_slice)
+##            print("ycut_data =",ycut_data)
+
+            ycut_out = myislandinfo(ycut_data, trigger_val=0)[0]
+##            print("ycut_out =",ycut_out)
+##            print("length ycut_out =",len(ycut_out))
+
+## skip if data not found
+            if len(ycut_out) > 0:
+                x_start, x_end = list(zip(*ycut_out))
+                x_start = np.array(x_start)
+                x_end = np.array(x_end)
+            else:
+                extract_data_temp[it-1,0] = 0
+                extract_data_temp[it-1,1] = y_slice
+                extract_data_temp[it-1,2] = 0
+                extract_data_temp[it-1,3] = 0
+                extract_data_temp[it-1,4] = 0
+                extract_data_temp[it-1,5] = 0
+                extract_data_temp[it-1,6] = 0
+                extract_data_temp[it-1,7] = 0
+                extract_data_temp[it-1,8] = 0
+                continue
+##            print("x_start =",x_start)
+##            print("x_end =",x_end)
+
+            x_start_pix = x_start+x_slice_L
+            x_end_pix = x_end+x_slice_L
+            x_center_pix = (x_start_pix+x_end_pix)//2
+            x_center_pix_s = x_center_pix[1:-1]
+
+##            print("x_start_pix=",x_start_pix)
+##            print("x_end_pix=",x_end_pix)
+##            print("x_center_pix=",x_center_pix)
+##            print("x_center_pix_s=",x_center_pix_s)
+
+            if len(x_start) >= 1:
+                x_pos1_L = x_center_pix[0]
+                cv.circle(edge_srM_rgb_temp, (x_pos1_L, y_slice), 2, (0, 150, 255), 1)
+                indx_data_temp[it-1,0] = 1
+            else:
+                x_pos1_L = 0
+
+##            print("x_pos1_L=",x_pos1_L)
+            
+            if len(x_start) >= 2:
+                x_pos1_R = x_center_pix[-1]
+                x_pos1_M = (x_pos1_L+x_pos1_R)//2
+                cv.circle(edge_srM_rgb_temp, (x_pos1_R, y_slice), 2, (0, 150, 255), 1)
+                via_CD_pix = (x_pos1_R-x_pos1_L)+1
+                indx_data_temp[it-1,3] = len(x_start)
+
+##                print("x_pos1_M=",x_pos1_M)
+            else:
+                x_pos1_R = 0
+                via_CD_pix = 0
+
+##            print("x_pos1_R=",x_pos1_R)
+            
+            if len(x_start) >= 3:
+                array_L = x_center_pix_s[np.where(x_center_pix_s <= x_pos1_M)]
+                array_R = x_center_pix_s[np.where(x_center_pix_s > x_pos1_M)]
+
+##                print("array_L=",array_L)
+##                print("array_R=",array_R)
+                
+                if len(array_L) >= 1 and len(array_R) >= 1:
+                    x_pos2_L = array_L[-1]
+                    x_pos2_R = array_R[0]
+                    cv.circle(edge_srM_rgb_temp, (x_pos2_L, y_slice), 2, (255, 102, 255), 1)
+                    cv.circle(edge_srM_rgb_temp, (x_pos2_R, y_slice), 2, (255, 102, 255), 1)
+                    seam_CD_pix = (x_pos2_R-x_pos2_L)+1
+                    indx_data_temp[it-1,1] = len(array_L)+1
+                    indx_data_temp[it-1,2] = len(x_start)-len(array_R)
+
+                if len(array_L) >= 1 and len(array_R) < 1:
+                    if len(array_L) >= 2:
+                        x_pos2_L = array_L[-2]
+                        x_pos2_R = array_L[-1]
+                        cv.circle(edge_srM_rgb_temp, (x_pos2_L, y_slice), 2, (255, 102, 255), 1)
+                        cv.circle(edge_srM_rgb_temp, (x_pos2_R, y_slice), 2, (255, 102, 255), 1)
+                        seam_CD_pix = (x_pos2_R-x_pos2_L)+1
+                        indx_data_temp[it-1,1] = len(array_L)
+                        indx_data_temp[it-1,2] = len(array_L)+1
+                    else:
+                        x_pos2_L = array_L[-1]
+                        x_pos2_R = 0
+                        cv.circle(edge_srM_rgb_temp, (x_pos2_L, y_slice), 2, (255, 102, 255), 1)
+                        seam_CD_pix = 0
+                        indx_data_temp[it-1,1] = len(array_L)+1
+            
+                if len(array_L) < 1 and len(array_R) >= 1:
+                    if len(array_R) >= 2:
+                        x_pos2_L = array_R[0]
+                        x_pos2_R = array_R[1]
+                        cv.circle(edge_srM_rgb_temp, (x_pos2_L, y_slice), 2, (255, 102, 255), 1)
+                        cv.circle(edge_srM_rgb_temp, (x_pos2_R, y_slice), 2, (255, 102, 255), 1)
+                        seam_CD_pix = (x_pos2_R-x_pos2_L)+1
+                        indx_data_temp[it-1,1] = len(x_start)-len(array_R)
+                        indx_data_temp[it-1,2] = len(x_start)-len(array_R)+1
+                    else:
+                        x_pos2_L = array_R[0]
+                        x_pos2_R = 0
+                        cv.circle(edge_srM_rgb_temp, (x_pos2_L, y_slice), 2, (255, 102, 255), 1)
+                        seam_CD_pix = 0
+                        indx_data_temp[it-1,1] = len(x_start)-len(array_R)
+            else:
+                x_pos2_L = 0
+                x_pos2_R = 0
+                seam_CD_pix = 0
+
+##            print("x_pos2_L=",x_pos2_L)
+##            print("x_pos2_R=",x_pos2_R)
+##            print("pos_check=",x_pos1_L,x_pos2_L,x_pos2_R,x_pos1_R)
+
+            h_nm = (P_bot_y-y_slice)/pix_nm_ref
+            via_CD_nm = via_CD_pix/pix_nm_ref
+            seam_CD_nm = seam_CD_pix/pix_nm_ref
+
+            extract_data_temp[it-1,0] = len(x_start_pix)
+            extract_data_temp[it-1,1] = y_slice
+            extract_data_temp[it-1,2] = x_pos1_L
+            extract_data_temp[it-1,3] = x_pos1_R
+            extract_data_temp[it-1,4] = x_pos2_L
+            extract_data_temp[it-1,5] = x_pos2_R
+            extract_data_temp[it-1,6] = h_nm
+            extract_data_temp[it-1,7] = via_CD_nm
+            extract_data_temp[it-1,8] = seam_CD_nm
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
