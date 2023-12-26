@@ -164,24 +164,52 @@ def DefaultRot(rotateImage, angle):
     centerX, centerY = imgWidth//2, imgHeight//2
     print("center_old =",centerX,",",centerY)
 
+    ## Define 2D rotation matrix
+    rotationMatrix = cv.getRotationMatrix2D((centerX, centerY), angle, 1.0)
+  
+    ## Perform rotation
+    rotatingimage = cv.warpAffine(rotateImage, rotationMatrix, (imgWidth, imgHeight))
 
+    return rotatingimage
+    
+## Modified OpenCV rotation without cropping/cutting sides
+def ModifiedRot(rotateImage, angle):
 
+    print("Call modified rotation function:")
+    
+    ## Get image height and width
+    imgHeight, imgWidth = rotateImage.shape[0], rotateImage.shape[1]
+    print("img_s W/H =",imgWidth,",",imgHeight)
 
+    ## Image center coordinate (x,y)=(w,h)
+    centerX, centerY = imgWidth//2, imgHeight//2
+    print("center_old =",centerX,",",centerY)
 
+    ## 2D rotation matrix
+    rotationMatrix = cv.getRotationMatrix2D((centerX, centerY), angle, 1.0)
+    print("M_rot_old",rotationMatrix)
 
+    ## Take out sin and cos values from rotationMatrix
+    ## Use numpy absolute function to make positive value
+    cosofRotationMatrix = np.abs(rotationMatrix[0][0])
+    sinofRotationMatrix = np.abs(rotationMatrix[0][1])
+    print("cos,sin =",cosofRotationMatrix,",",sinofRotationMatrix)
+    
+    ## Compute new height & width of an image for warpAffine function to prevent cropping images
+    newImageWidth = int((imgWidth * cosofRotationMatrix) + (imgHeight * sinofRotationMatrix))
+    newImageHeight = int((imgWidth * sinofRotationMatrix) + (imgHeight * cosofRotationMatrix))
+    print("img_s rescale W/H =",newImageWidth,",",newImageHeight)
+    print("center_new =",newImageWidth//2,",",newImageHeight//2)
 
+    ## Update the values of rotation matrix (delta=new_center-old_center)
+    rotationMatrix[0][2] += (newImageWidth/2) - centerX
+    rotationMatrix[1][2] += (newImageHeight/2) - centerY
+    print("M_rot_new",rotationMatrix,"\n")
 
-
-
-
-
-
-
-
-
-
-
-
+    ## Perform rotation
+    rotatingimage = cv.warpAffine(rotateImage,rotationMatrix,(newImageWidth,newImageHeight),cv.INTER_AREA)
+  
+    return rotatingimage
 
 
 
