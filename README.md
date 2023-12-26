@@ -217,7 +217,11 @@ def ModifiedRot(rotateImage, angle):
 print("\n-----------------------------------------------------------")
 print("## Load image ##\n")
 
+## Load image
+img = cv.imread(pathname,cv.IMREAD_UNCHANGED)
 
+(h_ori, w_ori) = img.shape[:2]
+print("Original image (H/W) =",h_ori,"x",w_ori)
 
 
 
