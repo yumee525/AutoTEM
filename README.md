@@ -270,34 +270,82 @@ print("Please double click left mouse to select start & end positions of the sca
 ## --- debug start --- Replace by print
 print("Please select 2 points at the same interface for determining the rotation angle.\n")
 
+## Find scale bar(找尋比例尺)
+coords = []
+input_param =[img_rgb_arb,"Image preview"]
+cv.setMouseCallback("Image preview", drawCross, input_param)
+cv.waitKey(0)
 
+if flag_Qs == 1:
+    try:
+        L_ab = float(input("Scale bar length [nm]: "))
+    except ValueError:
+        print("Not a number")
+else:
+    L_ab = L_scale_bar_fix        
+print("Scale bar used [nm]:",L_ab,"\n")
 
+coords = np.reshape(coords,(4,2))
 
+## Calculate transformation factors
+print("\n-----------------------------------------------------------")
+print("## Calculate transfromation factors ##\n")
 
+P_a_x = coords[0,0]
+P_a_y = coords[0,1]
+P_b_x = coords[1,0]
+P_b_y = coords[1,1]
+P_ab = math.sqrt((P_b_x-P_a_x)*(P_b_x-P_a_x)+(P_b_y-P_a_y)*(P_b_y-P_a_y))
 
+nm_pix_ab = L_ab/P_ab       ## nm/pixel
+pix_nm_ab = P_ab/L_ab       ## pixel/nm
 
+r_ref_ab = pix_nm_ref/pix_nm_ab
+pix_nm_check = pix_nm_ab*r_ref_ab 
 
+## Target scaled width
+w_target = int(w_ori*r_ref_ab*r_resize_arb)
 
+print("P_ab:\t",P_ab)
+print("nm_pix_ref:\t",format(nm_pix_ref,".3f"),"\tnm/pixel ; pix_nm_ref:\t",format(pix_nm_ref,".3f"),"\tpixel/nm")
+print("nm_pix_ab:\t",format(nm_pix_ab,".3f"),"\tnm/pixel ; pix_nm_ab:\t",format(pix_nm_ab,".3f"),"\tpixel/nm")
+print("r_ref_ab:\t",format(r_ref_ab,".3f"))
+print("reference pix_nm:\t",pix_nm_ref,"pixel/nm")
+print("r_resize_arb:\t",format(r_resize_arb,".3f"),"\n")
 
+print("pix_nm_check (pix_nm_ab*r_ref_ab):\t",format(pix_nm_check,".3f"),"pixel/nm (expect = pix_nm_ref)")
+print("w_target (w_ori*r_ref_ab*r_resize_arb):\t",format(w_target,".3f"),"pixels\n")
 
+## Find 2D rotation angle & define 2D rotation matrix
+P_a2_x = coords[2,0]
+P_a2_y = coords[2,1]
+P_b2_x = coords[3,0]
+P_b2_y = coords[3,1]
 
+ddx = P_b2_x-P_a2_x
+ddy = -(P_b2_y-P_a2_y)
 
+print("ddx=",ddx)
+print("ddx=",ddy,"\n")
 
+if ddx == 0 and ddy > 0:
+    angle_deg = 90
+    angle_rad = np.radians(angle_deg)
+elif ddx == 0 and ddy < 0:
+    angle_deg = 270
+    angle_rad = np.radians(angle_deg)
+elif ddy == 0:
+    angle_rad = 0.0
+    angle_deg = 0.0
+else:
+    angle_rad = np.arctan(ddy/abs(ddx))
+    if ddx >= 0:
+        angle_deg = np.degrees(angle_rad)
+    else:
+        angle_deg = 180-np.degrees(angle_rad)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+print("angle(rad) =",angle_rad)
+print("angle(deg) =",angle_deg)
 
 
 
