@@ -778,22 +778,226 @@ if flag_autoM == 1:
             extract_data_temp[it-1,7] = via_CD_nm
             extract_data_temp[it-1,8] = seam_CD_nm
 
+            cv.imshow("Auto measu. preview", edge_srM_rgb_temp)
+            cv.waitKey(1)
 
+        print("(n_islands,y_pix,via_L_pix,via_R_pix,seam_L_pix,seam_R_pix,y_nm,via_CD_nm,seam_CD_nm)")
+        print("extract_data_temp:\n",extract_data_temp,"\n")
+##        print("indx_data_temp:\n",indx_data_temp,"\n")
 
+## Assume all correct
+        add_corr = 1
+        while add_corr != 0:
 
+            ## User feedback lines to be corrected
+            line_corr = [int(x) for x in input("Lines to be corrected (eg. 1 2 7), enter 0 if no: ").split()]
+            print("lines to be corrected:",line_corr,"\n")
 
+            if line_corr[0] == 0:
+                add_corr = 0 
+                break
 
+            ## Correction section 
+            line_indx = 0
+            for it in range(1,n_slice+1):
 
+                ## Define slice
+                y_slice = P_bot_y-pix_nm_ref*it*delta_nm
+                ycut_data = edge_srM[y_slice,x_slice_L:x_slice_R]
+                h_nm = (P_bot_y-y_slice)/pix_nm_ref
 
+                ## Find islands
+                ycut_out = myislandinfo(ycut_data, trigger_val=0)[0]
 
+                ## Skip if islands not found
+                if len(ycut_out) > 0:
+                    x_start, x_end = list(zip(*ycut_out))
 
+                x_start = np.array(x_start)
+                x_end = np.array(x_end)
 
-
-
-
-
-
-
-
-
+                x_start_pix = x_start+x_slice_L
+                x_end_pix = x_end+x_slice_L
                 
+                ## Perform corrections
+                if it == line_corr[line_indx]:
+                    print("Correct line no.",it," (find ",len(x_start)," islands)")
+
+                    no1_old = int(indx_data_temp[it-1,0])
+                    no2_old = int(indx_data_temp[it-1,1])
+                    no3_old = int(indx_data_temp[it-1,2])
+                    no4_old = int(indx_data_temp[it-1,3])
+                    print("Old 4 islands (via_L seam_L seam_R via_R):",no1_old,no2_old,no3_old,no4_old)
+
+                    while 0 < 1:
+                        new_island_list = list(map(int, input("New 4 islands (via_L seam_L seam_R via_R)? ").split()))
+                        if len(new_island_list) == 4:
+                            no1 = new_island_list[0]
+                            no2 = new_island_list[1]
+                            no3 = new_island_list[2]
+                            no4 = new_island_list[3]
+                            indx_data_temp[it-1,0] = no1
+                            indx_data_temp[it-1,1] = no2
+                            indx_data_temp[it-1,2] = no3
+                            indx_data_temp[it-1,3] = no4
+                            print("Selected =",no1,",",no2,",",no3,",",no4,"\n")
+                            break
+                             
+                    extract_data_temp[it-1,0] = np.count_nonzero(new_island_list)
+
+                    if no1 == 0 and no2 == 0 and no3 == 0 and no4 == 0:
+                        x_pos1_L = 0
+                        x_pos1_R = 0
+                        x_pos2_L = 0
+                        x_pos2_R = 0
+                        via_CD_pix = 0
+                        seam_CD_pix = 0
+
+                        via_CD_nm = via_CD_pix/pix_nm_ref
+                        seam_CD_nm = seam_CD_pix/pix_nm_ref
+
+                        extract_data_temp[it-1,1] = y_slice
+                        extract_data_temp[it-1,2] = x_pos1_L
+                        extract_data_temp[it-1,3] = x_pos1_R
+                        extract_data_temp[it-1,4] = x_pos2_L
+                        extract_data_temp[it-1,5] = x_pos2_R
+                        extract_data_temp[it-1,6] = h_nm
+                        extract_data_temp[it-1,7] = via_CD_nm
+                        extract_data_temp[it-1,8] = seam_CD_nm
+    
+                    else:
+                        if no1 > 0:
+                            x_pos1_L = (x_start_pix[no1-1]+x_end_pix[no1-1])//2
+                            extract_data_temp[it-1,2] = x_pos1_L
+                        else:
+                            x_pos1_L = 0
+                            extract_data_temp[it-1,2] = x_pos1_L
+                
+                        if no4 > 0:
+                            x_pos1_R = (x_start_pix[no4-1]+x_end_pix[no4-1])//2
+                            extract_data_temp[it-1,3] = x_pos1_R
+                        else:
+                            x_pos1_R = 0
+                            extract_data_temp[it-1,3] = x_pos1_R
+
+                        if no1 > 0 and no4 > 0:
+                            via_CD_pix = (x_pos1_R-x_pos1_L)+1
+                            via_CD_nm = via_CD_pix/pix_nm_ref
+                            extract_data_temp[it-1,7] = via_CD_nm
+                        else:
+                            via_CD_nm = 0
+                            extract_data_temp[it-1,7] = via_CD_nm
+
+                        if no2 > 0:
+                            x_pos2_L = (x_start_pix[no2-1]+x_end_pix[no2-1])//2
+                            extract_data_temp[it-1,4] = x_pos2_L
+                        else:
+                            x_pos2_L = 0
+                            extract_data_temp[it-1,4] = x_pos2_L
+
+                        if no3 > 0:
+                            x_pos2_R = (x_start_pix[no3-1]+x_end_pix[no3-1])//2
+                            extract_data_temp[it-1,5] = x_pos2_R
+                        else:
+                            x_pos2_R = 0
+                            extract_data_temp[it-1,5] = x_pos2_R
+
+                        if no2 > 0 and no3 > 0:
+                            seam_CD_pix = (x_pos2_R-x_pos2_L)+1
+                            seam_CD_nm = seam_CD_pix/pix_nm_ref
+                            extract_data_temp[it-1,8] = seam_CD_nm
+                        else:
+                            seam_CD_nm = 0
+                            extract_data_temp[it-1,8] = seam_CD_nm
+
+                    if line_indx != len(line_corr)-1:
+                        line_indx = line_indx+1
+
+            ## Clear preview
+            edge_srM_rgb_temp = edge_srM_rgb_backup.copy()
+            cv.destroyWindow("Auto measu. preview")
+            cv.imshow("Auto measu. preview", edge_srM_rgb_temp)
+
+            ## Update preview                      
+            for ix in range(1,n_slice+1):
+                para0 = int(extract_data_temp[ix-1,0])
+                para1 = int(extract_data_temp[ix-1,1])
+                para2 = int(extract_data_temp[ix-1,2])
+                para3 = int(extract_data_temp[ix-1,3])
+                para4 = int(extract_data_temp[ix-1,4])
+                para5 = int(extract_data_temp[ix-1,5])
+                para6 = extract_data_temp[ix-1,6]
+                para7 = extract_data_temp[ix-1,7]
+                para8 = extract_data_temp[ix-1,8]
+
+                if para0 >= 1:
+                    cv.circle(edge_srM_rgb_temp, (para2, para1), 2, (0, 150, 255), 1)
+
+                if para0 >= 2:
+                    cv.circle(edge_srM_rgb_temp, (para3, para1), 2, (0, 150, 255), 1)
+
+                if para0 >= 3:
+                    cv.circle(edge_srM_rgb_temp, (para4, para1), 2, (255, 102, 255), 1)
+    
+                if para0 >= 4:
+                    cv.circle(edge_srM_rgb_temp, (para5, para1), 2, (255, 102, 255), 1)
+
+                cv.imshow("Auto measu. preview", edge_srM_rgb_temp)
+                cv.waitKey(1)
+
+            print("(n_islands,y_pix,via_L_pix,via_R_pix,seam_L_pix,seam_R_pix,y_nm,via_CD_nm,seam_CD_nm)")
+            print("extract_data_temp:\n",extract_data_temp,"\n")
+##            print("indx_data_temp:\n",indx_data_temp,"\n")
+
+        ## Final data
+        extract_data = extract_data_temp
+        indx_data = indx_data_temp
+        edge_srM_rgb = edge_srM_rgb_temp.copy()
+
+        input_param =[edge_srM_rgb,auto_name]
+        cv.setMouseCallback(auto_name, drawCross, input_param)
+        cv.destroyWindow(auto_name)
+        cv.imshow(auto_name, edge_srM_rgb)    
+        cv.waitKey(1)
+
+        print("(n_islands,y_pix,via_L_pix,via_R_pix,seam_L_pix,seam_R_pix,y_nm,via_CD_nm,seam_CD_nm)")
+        print("extract_data:\n",extract_data,"\n")
+##        print("indx_data:\n",indx_data,"\n")
+
+        ## Output file
+        if flag_norm == 0:
+            outputname3 = "extract_"+inputname+"_maxTh_"+str(int(max_th))+"_L"+str(i_loop)+".xlsx"
+        else:
+            outputname3 = "extract_"+inputname+"_maxTh_"+str(int(max_th))+"_L"+str(i_loop)+"_n.xlsx"
+        # np.savetxt(outputname3,extract_data,delimiter=' ',fmt='%.3e')
+
+        wb_SW = openpyxl.Workbook()
+        sh1 = wb_SW.create_sheet("THK",0)
+        title_excel = ("n_islands","y_pix","via_L_pix","via_R_pix","seam_L_pix","seam_R_pix","y_nm","via_CD_nm","seam_CD_nm")
+        sh1.append(title_excel)
+        for ix in range(0,n_slice):
+            data_temp = extract_data[ix]
+            data_list = data_temp.tolist()
+            sh1.append(data_list)        
+
+        wb_SW.save(outputname3)
+        ## Loop counts
+        i_loop += 1
+
+        if i_loop > n_extract:
+            if flag_norm == 0:
+                if flag_itype == 0:
+                    outputname4 = "ed_"+inputname+"_maxTh_"+str(int(max_th))+"_ext.jpg"        
+                if flag_itype == 1:
+                    outputname4 = "ed_"+inputname+"_maxTh_"+str(int(max_th))+"_ext.png"
+            else:
+                if flag_itype == 0:
+                    outputname4 = "ed_"+inputname+"_maxTh_"+str(int(max_th))+"_ext_n.jpg"
+                if flag_itype == 1:
+                    outputname4 = "ed_"+inputname+"_maxTh_"+str(int(max_th))+"_ext_n.png"
+            # cv.imwrite(outputname4, edge_srM_rgb, img_quality)
+            input("Press Enter to exit...\n")       
+
+## Exit the code
+cv.destroyAllWindows()
+sys.exit()
