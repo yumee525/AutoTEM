@@ -58,18 +58,24 @@ max_th_fix = 129      ## [-]  Available only if flag_Qs == 0
 ratio_fix = 45       ## [-]  Available only if flag_Qs == 0
 
 ## Number of plugs to be extracted
-n_plugs_fix = 4      ## [-]  Available only if flag_Qs == 0
-L_scale_bar_fix = 20 ## [nm] Available only if flag_Qs == 0
+n_plugs_fix = 4      
+## [-]  Available only if flag_Qs == 0
+L_scale_bar_fix = 20 
+## [nm] Available only if flag_Qs == 0
 
 ## Visualization parameters(可視化參數)
-## w_arbitrary = 500  ## [pixels] Arbitrary number
-w_arbitrary = 800  ## [pixels] Arbitrary number
+## w_arbitrary = 500
+## [pixels] Arbitrary number
+w_arbitrary = 800  
+## [pixels] Arbitrary number
 
 ## Image type
 if flag_itype == 0:
-    img_quality = [cv.IMWRITE_JPEG_QUALITY, 100]  ## Quality 0~100
+    img_quality = [cv.IMWRITE_JPEG_QUALITY, 100]  
+## Quality 0~100
 if flag_itype == 1:
-    img_quality = [cv.IMWRITE_PNG_COMPRESSION, 0] ## Compress level 0~5
+    img_quality = [cv.IMWRITE_PNG_COMPRESSION, 0] 
+## Compress level 0~5
 
 ## -----------------------------------------------------------
 ## Log file
@@ -120,13 +126,13 @@ def myislandinfo(y, trigger_val, stopind_inclusive=True):
     ## (left-most and right-most islands) respectively
     y_ext = np.r_[False,y != trigger_val, False]
 
-    ## Get indices of shifts, which represent the start and stop indices
+## Get indices of shifts, which represent the start and stop indices
     idx = np.flatnonzero(y_ext[:-1] != y_ext[1:])
 
-    ## Lengths of islands if needed
+## Lengths of islands if needed
     lens = idx[1::2]-idx[:-1:2]
 
-    ## Using a stepsize of 2 would get us start and stop indices for each island
+## Using a stepsize of 2 would get us start and stop indices for each island
     return list(zip(idx[:-1:2], idx[1::2]-int(stopind_inclusive))), lens
 
 ## Track mouse positions & do something based on actions of the mouse
@@ -156,18 +162,18 @@ def DefaultRot(rotateImage, angle):
 
     print("\nCall default rotation function:")
 
-    ## Get image height and width
+## Get image height and width
     imgHeight, imgWidth = rotateImage.shape[0], rotateImage.shape[1]
     print("img_s W/H =",imgWidth,",",imgHeight)
 
-    ## Image center coordinate (x,y)=(w,h)
+## Image center coordinate (x,y)=(w,h)
     centerX, centerY = imgWidth//2, imgHeight//2
     print("center_old =",centerX,",",centerY)
 
-    ## Define 2D rotation matrix
+## Define 2D rotation matrix
     rotationMatrix = cv.getRotationMatrix2D((centerX, centerY), angle, 1.0)
   
-    ## Perform rotation
+## Perform rotation
     rotatingimage = cv.warpAffine(rotateImage, rotationMatrix, (imgWidth, imgHeight))
 
     return rotatingimage
@@ -177,11 +183,11 @@ def ModifiedRot(rotateImage, angle):
 
     print("Call modified rotation function:")
     
-    ## Get image height and width
+## Get image height and width
     imgHeight, imgWidth = rotateImage.shape[0], rotateImage.shape[1]
     print("img_s W/H =",imgWidth,",",imgHeight)
 
- ## Image center coordinate (x,y)=(w,h)
+## Image center coordinate (x,y)=(w,h)
     centerX, centerY = imgWidth//2, imgHeight//2
     print("center_old =",centerX,",",centerY)
 
@@ -222,6 +228,75 @@ img = cv.imread(pathname,cv.IMREAD_UNCHANGED)
 
 (h_ori, w_ori) = img.shape[:2]
 print("Original image (H/W) =",h_ori,"x",w_ori)
+
+## Change format
+print("img.shape",img.shape)
+if(len(img.shape) >= 3):
+    if(img.shape[2] >= 3):
+        print("channel img.shape[2]=",img.shape[2])
+        img = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+
+## -----------------------------------------------------------
+## Invert or normalize grayscale images(反轉與正規化影像)
+## -----------------------------------------------------------
+print("\n-----------------------------------------------------------")
+print("## Invert / normalize grayscale images ##\n")
+
+## Invert image(反轉影像)
+if flag_inv == 1:
+    img = cv.bitwise_not(img)
+    cv.imshow("Invert black/white", img)
+    cv.waitKey(1)
+
+## Normalization(正規化影像)
+if flag_norm == 1:
+    img = cv.normalize(img, None, min_l, max_l, cv.NORM_MINMAX) 
+    if flag_info >= 1:
+        cv.imshow("Normalized image", img)
+        cv.waitKey(1)
+
+## -----------------------------------------------------------
+## Find scaling & rotation factors for a dividable value of pixels/nm
+## -----------------------------------------------------------
+print("\n-----------------------------------------------------------")
+print("## Find scaling & rotation factors ##\n")
+
+## Scale original image w/ an arbitrary ratio (Preview)
+img_rgb_arb = cv.cvtColor(img,cv.COLOR_GRAY2RGB)
+img_rgb_arb, r_resize_arb = ResizeWithAspectRatio(img_rgb_arb, width=w_arbitrary)
+cv.imshow("Image preview", img_rgb_arb) 
+
+print("Please double click left mouse to select start & end positions of the scale bar.\n") 
+## --- debug start --- Replace by print
+print("Please select 2 points at the same interface for determining the rotation angle.\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
