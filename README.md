@@ -347,13 +347,158 @@ else:
 print("angle(rad) =",angle_rad)
 print("angle(deg) =",angle_deg)
 
+## -----------------------------------------------------------
+## Perform transformation before Canny(Canny前進行轉換)
+## -----------------------------------------------------------
+if flag_transf == 0:
+    print("\n-----------------------------------------------------------")
+    print("## Perform transformation before Canny ##\n")
 
+    img_x = ResizeWithAspectRatio(img, width=w_target)[0]
 
+## 根據"寬度"調整大小
+    (h_x, w_x) = img_x.shape[:2]
+    print("Resize bf. Canny (H/W) =",h_x,"x",w_x)
 
+    cv.imshow("Resized bf. Canny",img_x)
+## 顯示影像，只執行這段命令可能會造成視窗崩潰或沒有反應，須再執行cv.waitKey()
+    cv.waitKey(1)
+## 等待與讀取使用者所按下的按鍵，等待時間預設單位為毫秒
 
+## -----------------------------------------------------------
+## Interactive Canny edge extraction on "original" image & resize for visualization(對「原始」影像進行互動式 Canny 邊緣擷取並調整大小以實現視覺化)
+## -----------------------------------------------------------
+print("\n-----------------------------------------------------------")
+print("## Interactive Canny extraction  ##\n")
 
+if flag_win == 1:
+    def CannyThreshold(val):
+        max_th = cv.getTrackbarPos(title_track, window_name)
 
+        ratio  = cv.getTrackbarPos(title_track2, window_name)/100
 
+        ## Pre-blurry before Canny
+        img_previous = img
+        for it in range(1,n_blur+1):
+            if it == 1:
+                img_in = img
+            else:
+                img_in = img_previous
+        
+            if flag_blur == 0:
+                img_blur = img_in
+            elif flag_blur == 1:
+                img_blur = cv.blur(img_in, (blur_level,blur_level))
+            elif flag_blur == 2:
+                img_blur = cv.GaussianBlur(img_in, (blur_level,blur_level), 0)
 
+            img_previous = img_blur
 
+        ## Canny extract
+        detected_edges = cv.Canny(img_blur, max_th*ratio, max_th, blur_level)
 
+        ## Define mask & apply mask
+        mask = detected_edges != 0
+
+        if flag_Wedg == 1:
+            detected_edges[mask] = 255
+            dst = detected_edges
+        else:
+            dst = img * (mask[:,:].astype(img.dtype))
+
+        ## Resize af. edge extraction for better visualization
+        dst_s = ResizeWithAspectRatio(dst, width=w_arbitrary)[0]
+        cv.imshow(window_name, dst_s)
+
+    ## Use defined function
+    cv.namedWindow(window_name)
+    cv.createTrackbar(title_track, window_name , min_l, max_l, CannyThreshold)
+    cv.createTrackbar(title_track2, window_name , 0, 100, CannyThreshold)
+
+    CannyThreshold(0)
+    cv.waitKey(0)
+
+## Get value from user
+if flag_Qs == 1:
+    try:
+        max_th = float(input("Please enter max threshold [0-255]:"))
+    except ValueError:
+        print("Not a number")
+    try:
+        ratio = float(input("Please enter min/max ratio [0-100]:"))
+    except ValueError:
+        print("Not a number")
+else:
+    max_th = max_th_fix
+    ratio = ratio_fix
+
+ratio = ratio/100
+print("Entered (max_th,ratio) = (",max_th,",",ratio,")\n")
+min_th = max_th*ratio
+
+## Define input/output name
+if flag_norm == 0:
+    if flag_itype == 0:
+        outputname1 = "im_"+inputname+"_maxTh_"+str(int(max_th))+".jpg"
+        outputname2 = "ed_"+inputname+"_maxTh_"+str(int(max_th))+".jpg"
+        outputname3 = "im_"+inputname+"_maxTh_"+str(int(max_th))+"_b.jpg"
+    if flag_itype == 1:
+        outputname1 = "im_"+inputname+"_maxTh_"+str(int(max_th))+".png"
+        outputname2 = "ed_"+inputname+"_maxTh_"+str(int(max_th))+".png"
+        outputname3 = "im_"+inputname+"_maxTh_"+str(int(max_th))+"_b.png"
+else:
+    if flag_itype == 0:
+        outputname1 = "im_"+inputname+"_maxTh_"+str(int(max_th))+"_n.jpg"
+        outputname2 = "ed_"+inputname+"_maxTh_"+str(int(max_th))+"_n.jpg"
+        outputname3 = "im_"+inputname+"_maxTh_"+str(int(max_th))+"_n_b.jpg"
+    if flag_itype == 1:
+        outputname1 = "im_"+inputname+"_maxTh_"+str(int(max_th))+"_n.png"
+        outputname2 = "ed_"+inputname+"_maxTh_"+str(int(max_th))+"_n.png"
+        outputname3 = "im_"+inputname+"_maxTh_"+str(int(max_th))+"_n_b.png"
+
+print("Output image:\t",outputname1)
+print("Output edges:\t",outputname2)
+
+## -----------------------------------------------------------
+## Perform real Canny edge extraction on the "original" image
+## -----------------------------------------------------------
+print("\n-----------------------------------------------------------")
+print("## Real Canny extraction ##\n")
+
+## Pre-blurry before Canny
+img_previous = img
+for it in range(1,n_blur+1):
+    if it == 1:
+        img_in = img
+
+    else:
+        img_in = img_previous
+
+    if flag_blur == 0:
+        img_blur = img_in
+    elif flag_blur == 1:
+        img_blur = cv.blur(img_in, (blur_level,blur_level))
+    elif flag_blur == 2:
+        img_blur = cv.GaussianBlur(img_in, (blur_level,blur_level), 0)
+
+    img_previous = img_blur
+
+## Canny extract
+detected_edges = cv.Canny(img_blur, max_th*ratio, max_th, blur_level)
+
+## Define mask & apply mask
+mask = detected_edges != 0
+
+if flag_Wedg == 1:
+    detected_edges[mask] = 255
+    edge = detected_edges
+else:
+    edge = img * (mask[:,:].astype(img.dtype))
+
+if flag_info >= 1:
+    cv.imshow("Canny extract (original)", edge)
+    cv.waitKey(1)
+
+    cv.imshow("Blurry image", img_blur) 
+    cv.waitKey(1)
+    # cv.imwrite(outputname3, img_blur, img_quality)
