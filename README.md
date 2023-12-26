@@ -57,6 +57,117 @@ blur_level = 5       ## [-]  Number of pixels for blurring (e.g. 5 means 5*5 pix
 max_th_fix = 129      ## [-]  Available only if flag_Qs == 0
 ratio_fix = 45       ## [-]  Available only if flag_Qs == 0
 
+## Number of plugs to be extracted
+n_plugs_fix = 4      ## [-]  Available only if flag_Qs == 0
+L_scale_bar_fix = 20 ## [nm] Available only if flag_Qs == 0
+
+## Visualization parameters(可視化參數)
+## w_arbitrary = 500  ## [pixels] Arbitrary number
+w_arbitrary = 800  ## [pixels] Arbitrary number
+
+## Image type
+if flag_itype == 0:
+    img_quality = [cv.IMWRITE_JPEG_QUALITY, 100]  ## Quality 0~100
+if flag_itype == 1:
+    img_quality = [cv.IMWRITE_PNG_COMPRESSION, 0] ## Compress level 0~5
+
+## -----------------------------------------------------------
+## Log file
+## -----------------------------------------------------------
+print("\n-----------------------------------------------------------")
+print("## Program start ##\n")
+
+print("Flags:")
+print("flag_inv\t",flag_inv)
+print("flag_matplt\t",flag_matplt)
+print("flag_norm\t",flag_norm)
+print("flag_blur\t",flag_blur)
+print("flag_Wedg\t",flag_Wedg)
+print("flag_win\t",flag_win,"\n")
+
+print("Grayscale ranges:")
+print("max_l\t",max_l)
+print("min_l\t",min_l)
+
+print("\nFiles:")
+print("Input file path:\t",pathname)
+
+## -----------------------------------------------------------
+## Define functions
+## -----------------------------------------------------------
+## Scaling image by keeping aspect ratio(固定比例縮放影像)
+def ResizeWithAspectRatio(image, width=None, height=None, inter=cv.INTER_AREA)
+
+    dim = None
+    (h, w) = image.shape[:2]
+
+    if width is None and height is None:
+        return image
+    if width is None:
+        r = height / float(h)
+        dim = (int(w * r), height)
+    else:
+        r = width / float(w)
+        dim = (width, int(h * r))
+
+    return cv.resize(image, dim, interpolation=inter), r
+
+## Find groups of a list of numbers & output start/end index in the list(尋找數字清單的群組並輸出清單中的開始/結束索引)
+def myislandinfo(y, trigger_val, stopind_inclusive=True):
+
+    ## Setup "sentients" on either sides to make sure we have setup
+    ## "ramps" to catch the start and stop for the edge islands
+    ## (left-most and right-most islands) respectively
+    y_ext = np.r_[False,y != trigger_val, False]
+
+    ## Get indices of shifts, which represent the start and stop indices
+    idx = np.flatnonzero(y_ext[:-1] != y_ext[1:])
+
+    ## Lengths of islands if needed
+    lens = idx[1::2]-idx[:-1:2]
+
+    ## Using a stepsize of 2 would get us start and stop indices for each island
+    return list(zip(idx[:-1:2], idx[1::2]-int(stopind_inclusive))), lens
+
+## Track mouse positions & do something based on actions of the mouse
+def drawCross(event, x, y, flags, param):
+
+    image_temp = param[0]
+    image_name = param[1]
+
+    if event == cv.EVENT_MOUSEMOVE:
+        imgCopy = image_temp.copy()
+        cv.line(imgCopy, (x-10000,y), (x+10000,y), (0, 0, 255), 1)
+        cv.line(imgCopy, (x,y-10000), (x,y+10000), (0, 0, 255), 1)
+        cv.line(imgCopy, (x-10,y), (x+10,y), (0, 255, 0), 1)
+        cv.line(imgCopy, (x,y-10), (x,y+10), (0, 255, 0), 1)
+        cv.imshow(image_name, imgCopy)
+
+    if event == cv.EVENT_LBUTTONDBLCLK:
+        print("Selected (x,y) = (",x,",",y,")")
+        cv.line(image_temp, (x-10,y), (x+10,y), (77, 208, 225), 1)
+        cv.line(image_temp, (x,y-10), (x,y+10), (77, 208, 225), 1)
+        cv.imshow(image_name, image_temp)
+
+        coords.append([x, y])
+
+## Default OpenCV rotation (cropping image outside the frame)
+def DefaultRot(rotateImage, angle):
+
+    print("\nCall default rotation function:")
+
+    ## Get image height and width
+    imgHeight, imgWidth = rotateImage.shape[0], rotateImage.shape[1]
+    print("img_s W/H =",imgWidth,",",imgHeight)
+
+    ## Image center coordinate (x,y)=(w,h)
+    centerX, centerY = imgWidth//2, imgHeight//2
+    print("center_old =",centerX,",",centerY)
+
+
+
+
+
 
 
 
