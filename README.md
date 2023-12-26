@@ -502,3 +502,146 @@ if flag_info >= 1:
     cv.imshow("Blurry image", img_blur) 
     cv.waitKey(1)
     # cv.imwrite(outputname3, img_blur, img_quality)
+
+## -----------------------------------------------------------
+## Perform transformation
+## -----------------------------------------------------------
+print("\n-----------------------------------------------------------")
+print("## Perform transformation ##\n")
+
+## Scaling size
+img_s, r_img_s = ResizeWithAspectRatio(img, width=w_target)
+if flag_info >= 1:
+    cv.imshow("Scaled image", img_s) 
+    cv.waitKey(1)
+
+(h_s, w_s) = img_s.shape[:2]
+
+edge_s, r_edge_s = ResizeWithAspectRatio(edge, width=w_target)
+if flag_info >= 1:
+    cv.imshow("Scaled edge", edge_s) 
+    cv.waitKey(1)
+
+print("Scaled image (H/W) =",h_s,"x",w_s)
+print("r_img_s:\t",format(r_img_s,".3f"),"(expect = r_ref_ab*r_resize_arb)")
+print("r_edge_s:\t",format(r_edge_s,".3f"),"(expect = r_ref_ab*r_resize_arb)\n")
+
+## Rotation
+img_srM = ModifiedRot(img_s, -1*angle_deg)
+edge_srM = ModifiedRot(edge_s, -1*angle_deg)
+
+if flag_info >= 1:
+    cv.imshow("Mod_rot Image", img_srM)
+    cv.waitKey(1)
+    
+    cv.imshow("Mod_rot Edge", edge_srM)
+    cv.waitKey(1)
+
+# cv.imwrite(outputname1, img_srM, img_quality)
+# cv.imwrite(outputname2, edge_srM, img_quality)
+height, width = edge_srM.shape[:2]
+# new_width = int(width * 0.5)
+# new_height = int(height * 0.5)
+# edge_srM2 = cv.resize(edge_srM, (new_width, new_height), interpolation = cv.INTER_LINEAR)
+## -----------------------------------------------------------
+## Overlay
+## -----------------------------------------------------------
+## Direct replace edge color on image
+# img_srM_rgb_cmp = cv.cvtColor(img_srM,cv.COLOR_GRAY2RGB)
+
+# ix, jx = np.where(edge_srM > 255/2)
+# print("find where",img_srM_rgb_cmp[ix,jx])
+
+# img_srM_rgb_cmp[ix,jx] = [(150,255,255)]
+
+# if flag_info >= 0:
+#     cv.imshow("img_temp2", img_srM_rgb_cmp)
+#     cv.waitKey(1)
+cv.destroyWindow("Image preview")
+
+## -----------------------------------------------------------
+## Auto measurements
+## -----------------------------------------------------------
+print("\n-----------------------------------------------------------")
+print("## Auto measurement ##\n")
+if flag_autoM == 1:
+
+    ## Select image
+    edge_srM_rgb = cv.cvtColor(edge_srM,cv.COLOR_GRAY2RGB)
+
+    ## Define plugs to be extracted
+    if flag_Qs == 1:
+        try:
+            n_extract = float(input("How many plugs to be extracted? "))
+        except ValueError:
+            print("Not a number")
+    else:
+        n_extract = n_plugs_fix
+    print("Plugs to be extracted:",n_extract,"\n")
+
+    i_loop = 1
+    while i_loop <= n_extract:
+
+        print("\n--------------------")
+        print("Loop counts= ",i_loop,",")
+
+        cv.imshow(auto_name, edge_srM_rgb) 
+
+        ## User define a reference point
+        coords = []
+        input_param =[edge_srM_rgb,auto_name]
+        cv.setMouseCallback(auto_name, drawCross, input_param)
+
+        print("Please select a point close to the center bottom of the extraction domain.\n")
+        cv.waitKey(0)
+
+        ## Define box
+        coords = np.reshape(coords,(1,2))
+        P_bot_x = coords[0,0]
+        P_bot_y = coords[0,1]
+
+        H_box_pix = int(H_box_nm*pix_nm_ref)
+        W_box_pix = int(W_box_nm*pix_nm_ref)
+
+        n_slice = int(H_box_nm//delta_nm)
+
+        x_slice_L = P_bot_x-(W_box_pix//2)
+        x_slice_R = P_bot_x+(W_box_pix//2)  
+
+        print("L_ref, nm_pix_ref =",L_ref," [nm],",nm_pix_ref," [nm/pixel]")
+        print("Pix_ref, pix_nm_ref =",P_ref," [pixel],",pix_nm_ref," [pixel/nm]")
+        print("W_box_nm, H_box_nm =",W_box_nm," [nm],",H_box_nm," [nm]")
+        print("W_box_pix, H_box_pix =",W_box_pix," [pixels],",H_box_pix," [pixels]")
+        print("n_slice =",n_slice,"\n")
+
+        ## Text
+        font = cv.FONT_HERSHEY_SIMPLEX
+
+        ## Draw measure lines
+        for it in range(1,n_slice+1):
+            y_slice = P_bot_y-pix_nm_ref*it*delta_nm
+            cv.line(edge_srM_rgb, (x_slice_L,y_slice), (x_slice_R,y_slice), (200, 230, 200), 1)
+            if it%2 == 0:
+                cv.putText(edge_srM_rgb,str(int(it)),(x_slice_L-30,y_slice+4), font, 0.3, (77, 208, 225), 1, cv.LINE_AA)
+            else:
+                cv.putText(edge_srM_rgb,str(int(it)),(x_slice_L-15,y_slice+4), font, 0.3, (77, 208, 225), 1, cv.LINE_AA)
+                
+        ## Draw box boundary
+        cv.rectangle(edge_srM_rgb, (x_slice_L, P_bot_y), (x_slice_R, P_bot_y-H_box_pix), (255, 255, 0), 1)
+
+        cv.imshow(auto_name, edge_srM_rgb)
+        cv.waitKey(1)
+
+        ## Define memory for measurement output
+        ## format (n_islands,y_pix,x_via_L_pix,x_via_R_pix,x_seam_L_pix,x_seam_R_pix,y_nm,via_CD_nm,seam_CD_nm)
+        extract_data = np.zeros((n_slice,9))
+        extract_data_temp = np.zeros((n_slice,9))
+
+        indx_data = np.zeros((n_slice,4))
+        indx_data_temp = np.zeros((n_slice,4))
+
+## Copy for preview
+        edge_srM_rgb_temp = edge_srM_rgb.copy()
+        edge_srM_rgb_backup = edge_srM_rgb.copy()
+        cv.imshow("Auto measu. preview", edge_srM_rgb_temp)
+        cv.waitKey(1)
